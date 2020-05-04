@@ -73,24 +73,28 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 
 	/**
 	 * Loads the bean definitions via an XmlBeanDefinitionReader.
+	 * 从xml文件中获取bean
 	 * @see org.springframework.beans.factory.xml.XmlBeanDefinitionReader
 	 * @see #initBeanDefinitionReader
 	 * @see #loadBeanDefinitions
 	 */
 	@Override
 	protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException, IOException {
-		// Create a new XmlBeanDefinitionReader for the given BeanFactory.
+		//为DefaultListableBeanFactory  创建XmlBeanDefinitionReader  用于解析xml并转为BeanDefinition
 		XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
 
 		// Configure the bean definition reader with this context's
 		// resource loading environment.
 		beanDefinitionReader.setEnvironment(this.getEnvironment());
+		//这里用的ResourceLoader是DefaultResourceLoader（如果beanFactory本身就是resourceLoad类型（实现了resourceLoad接口） 那么就是它本身 ）
+		// 这个对象是在创建XmlBeanDefinitionReader时候set进去的
 		beanDefinitionReader.setResourceLoader(this);
 		beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
 
 		// Allow a subclass to provide custom initialization of the reader,
 		// then proceed with actually loading the bean definitions.
 		initBeanDefinitionReader(beanDefinitionReader);
+		//核心方法 使用beanDefinitionReader解析xml为beanDefinition并填充到IOC容器中
 		loadBeanDefinitions(beanDefinitionReader);
 	}
 
@@ -118,13 +122,23 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 	 * @see #getResources
 	 * @see #getResourcePatternResolver
 	 */
+	/**
+	 * 从xml中解析bean definitions
+	 * @param reader
+	 * @throws BeansException
+	 * @throws IOException
+	 */
 	protected void loadBeanDefinitions(XmlBeanDefinitionReader reader) throws BeansException, IOException {
 		Resource[] configResources = getConfigResources();
 		if (configResources != null) {
+			//当ApplicationContext的入参是一个Resource对象的时候 走这个流程
+			//核心方法 BeanDefinitionReader 开始加载解析beanDefinitions
 			reader.loadBeanDefinitions(configResources);
 		}
 		String[] configLocations = getConfigLocations();
 		if (configLocations != null) {
+			//当ApplicationContext的入参是一个String形式的字符串路径的时候 走这个流程
+			//核心方法 BeanDefinitionReader 开始加载解析beanDefinitions
 			reader.loadBeanDefinitions(configLocations);
 		}
 	}

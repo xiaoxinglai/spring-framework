@@ -411,7 +411,11 @@ public class BeanDefinitionParserDelegate {
 	 * {@link org.springframework.beans.factory.parsing.ProblemReporter}.
 	 */
 	@Nullable
+	/**
+	 *todo 解析 bean元素的方法
+	 */
 	public BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable BeanDefinition containingBean) {
+		//取得<bean>元素中定义的id name 和aliase属性
 		String id = ele.getAttribute(ID_ATTRIBUTE);
 		String nameAttr = ele.getAttribute(NAME_ATTRIBUTE);
 
@@ -433,7 +437,7 @@ public class BeanDefinitionParserDelegate {
 		if (containingBean == null) {
 			checkNameUniqueness(beanName, aliases, ele);
 		}
-
+		//todo 核心方法 获取对bean元素的详细属性的解析 比如说bean属性的配置
 		AbstractBeanDefinition beanDefinition = parseBeanDefinitionElement(ele, beanName, containingBean);
 		if (beanDefinition != null) {
 			if (!StringUtils.hasText(beanName)) {
@@ -465,6 +469,7 @@ public class BeanDefinitionParserDelegate {
 				}
 			}
 			String[] aliasesArray = StringUtils.toStringArray(aliases);
+			//todo 最终将beanDefinition包装成BeanDefinitionHolder返回，然后set到IOC容器中
 			return new BeanDefinitionHolder(beanDefinition, beanName, aliasesArray);
 		}
 
@@ -496,12 +501,19 @@ public class BeanDefinitionParserDelegate {
 	 * Parse the bean definition itself, without regard to name or aliases. May return
 	 * {@code null} if problems occurred during the parsing of the bean definition.
 	 */
+	/**
+	 * todo 从Element元素中解析出beanDefinition对象
+	 * @param ele
+	 * @param beanName
+	 * @param containingBean
+	 * @return
+	 */
 	@Nullable
 	public AbstractBeanDefinition parseBeanDefinitionElement(
 			Element ele, String beanName, @Nullable BeanDefinition containingBean) {
 
 		this.parseState.push(new BeanEntry(beanName));
-
+		//这里只读取bean标签中设置的class名字，然后记录到BeanDefinition中去，只是做个记录 不涉及到对象的实例化过程 对象的实例化实际上是在依赖注入时完成的
 		String className = null;
 		if (ele.hasAttribute(CLASS_ATTRIBUTE)) {
 			className = ele.getAttribute(CLASS_ATTRIBUTE).trim();
@@ -512,16 +524,20 @@ public class BeanDefinitionParserDelegate {
 		}
 
 		try {
+			//创建BeanDefinition对象  实际是返回的是GenericBeanDefinition对象
+			//为bean定义信息的写入做准备
 			AbstractBeanDefinition bd = createBeanDefinition(className, parent);
-
+			//对当前bean标签的属性进行解析
 			parseBeanDefinitionAttributes(ele, beanName, containingBean, bd);
+			//设置描述信息
 			bd.setDescription(DomUtils.getChildElementValueByTagName(ele, DESCRIPTION_ELEMENT));
-
+			//对bean元素信息进行解析
 			parseMetaElements(ele, bd);
 			parseLookupOverrideSubElements(ele, bd.getMethodOverrides());
 			parseReplacedMethodSubElements(ele, bd.getMethodOverrides());
-
+			//解析bean的构造函数
 			parseConstructorArgElements(ele, bd);
+			//todo 解析bean的property设置 看下如何设置属性 bean的子属性
 			parsePropertyElements(ele, bd);
 			parseQualifierElements(ele, bd);
 
@@ -530,6 +546,8 @@ public class BeanDefinitionParserDelegate {
 
 			return bd;
 		}
+		//如果bean的在xml中的配置有问题，就会抛出如下异常，bean class找不到 或者bean Class依赖找不到
+		//这些异常出现的阶段就是在createBeanDefinition时进行的 会检查bean的class设置是否正确
 		catch (ClassNotFoundException ex) {
 			error("Bean class [" + className + "] not found", ele, ex);
 		}
@@ -697,11 +715,18 @@ public class BeanDefinitionParserDelegate {
 	/**
 	 * Parse property sub-elements of the given bean element.
 	 */
+	/**
+	 * 对指定bean属性元素的子元素进行解析
+	 * @param beanEle
+	 * @param bd
+	 */
 	public void parsePropertyElements(Element beanEle, BeanDefinition bd) {
+		//遍历所有bean元素下定义的property元素
 		NodeList nl = beanEle.getChildNodes();
 		for (int i = 0; i < nl.getLength(); i++) {
 			Node node = nl.item(i);
 			if (isCandidateElement(node) && nodeNameEquals(node, PROPERTY_ELEMENT)) {
+				//判断是property元素之后对该property元素进行解析
 				parsePropertyElement((Element) node, bd);
 			}
 		}
@@ -723,6 +748,12 @@ public class BeanDefinitionParserDelegate {
 	/**
 	 * Parse lookup-override sub-elements of the given bean element.
 	 */
+	/**
+	 * todo 特殊 会影响到 创建bean的形式
+	 * todo 如果MethodOverrides不为空，该bean就使用cglib创建
+	 * @param beanEle
+	 * @param overrides
+	 */
 	public void parseLookupOverrideSubElements(Element beanEle, MethodOverrides overrides) {
 		NodeList nl = beanEle.getChildNodes();
 		for (int i = 0; i < nl.getLength(); i++) {
@@ -740,6 +771,12 @@ public class BeanDefinitionParserDelegate {
 
 	/**
 	 * Parse replaced-method sub-elements of the given bean element.
+	 */
+	/**
+	 * todo 特殊 会影响到 org.springframework.beans.factory.support.SimpleInstantiationStrategy#instantiate(org.springframework.beans.factory.support.RootBeanDefinition, java.lang.String, org.springframework.beans.factory.BeanFactory)  这里创建bean的形式
+	 * todo 如果MethodOverrides不为空，该bean就使用cglib创建
+	 * @param beanEle
+	 * @param overrides
 	 */
 	public void parseReplacedMethodSubElements(Element beanEle, MethodOverrides overrides) {
 		NodeList nl = beanEle.getChildNodes();
@@ -829,7 +866,9 @@ public class BeanDefinitionParserDelegate {
 	/**
 	 * Parse a property element.
 	 */
+	//解析属性元素
 	public void parsePropertyElement(Element ele, BeanDefinition bd) {
+		//获取属性名
 		String propertyName = ele.getAttribute(NAME_ATTRIBUTE);
 		if (!StringUtils.hasLength(propertyName)) {
 			error("Tag 'property' must have a 'name' attribute", ele);
@@ -837,11 +876,16 @@ public class BeanDefinitionParserDelegate {
 		}
 		this.parseState.push(new PropertyEntry(propertyName));
 		try {
+			//todo 需要注意这里
+			//如果同一个bean中已经有同名的property存在，则不进行解析
+			//也就是 如果在同一个bean中 已经有同名的property设置 那么起作用的只是第一个
 			if (bd.getPropertyValues().contains(propertyName)) {
 				error("Multiple 'property' definitions for property '" + propertyName + "'", ele);
 				return;
 			}
+			//这里是解析property值的地方，返回的对象对应bean定义的property属性设置的解析结果
 			Object val = parsePropertyValue(ele, bd, propertyName);
+			//这个结果会封装到propertyValue对象中
 			PropertyValue pv = new PropertyValue(propertyName, val);
 			parseMetaElements(ele, pv);
 			pv.setSource(extractSource(ele));
@@ -898,6 +942,13 @@ public class BeanDefinitionParserDelegate {
 	 * Get the value of a property element. May be a list etc.
 	 * Also used for constructor arguments, "propertyName" being null in this case.
 	 */
+	/**
+	 * 获取属性值 也许是list或者其他
+	 * @param ele
+	 * @param bd
+	 * @param propertyName
+	 * @return
+	 */
 	@Nullable
 	public Object parsePropertyValue(Element ele, BeanDefinition bd, @Nullable String propertyName) {
 		String elementName = (propertyName != null ?
@@ -905,6 +956,7 @@ public class BeanDefinitionParserDelegate {
 				"<constructor-arg> element");
 
 		// Should only have one child element: ref, value, list, etc.
+		//其子元素可能是ref对象引用 value list 等等类型
 		NodeList nl = ele.getChildNodes();
 		Element subElement = null;
 		for (int i = 0; i < nl.getLength(); i++) {
@@ -921,14 +973,19 @@ public class BeanDefinitionParserDelegate {
 			}
 		}
 
+		//该属性是否是ref类型
 		boolean hasRefAttribute = ele.hasAttribute(REF_ATTRIBUTE);
+		//该属性是否是value类型
 		boolean hasValueAttribute = ele.hasAttribute(VALUE_ATTRIBUTE);
+
+		//如果同时ref类型和value类型 就报错
+		//如果是没有子元素 也报错
 		if ((hasRefAttribute && hasValueAttribute) ||
 				((hasRefAttribute || hasValueAttribute) && subElement != null)) {
 			error(elementName +
 					" is only allowed to contain either 'ref' attribute OR 'value' attribute OR sub-element", ele);
 		}
-
+		//如果是属性类型
 		if (hasRefAttribute) {
 			String refName = ele.getAttribute(REF_ATTRIBUTE);
 			if (!StringUtils.hasText(refName)) {
@@ -938,11 +995,14 @@ public class BeanDefinitionParserDelegate {
 			ref.setSource(extractSource(ele));
 			return ref;
 		}
+		//如果是值类型
 		else if (hasValueAttribute) {
 			TypedStringValue valueHolder = new TypedStringValue(ele.getAttribute(VALUE_ATTRIBUTE));
 			valueHolder.setSource(extractSource(ele));
 			return valueHolder;
 		}
+		//如果是子元素不等于空，那么解析子元素
+		//todo 这里解析子元素的属性
 		else if (subElement != null) {
 			return parsePropertySubElement(subElement, bd);
 		}
@@ -965,11 +1025,20 @@ public class BeanDefinitionParserDelegate {
 	 * @param defaultValueType the default type (class name) for any
 	 * {@code <value>} tag that might be created
 	 */
+	/**
+	 * 解析属性子元素
+	 * @param ele
+	 * @param bd
+	 * @param defaultValueType
+	 * @return
+	 */
 	@Nullable
 	public Object parsePropertySubElement(Element ele, @Nullable BeanDefinition bd, @Nullable String defaultValueType) {
+		//todo 如果不是bean的命名空间url  那就分析嵌套自定义元素 CustomElement 是自定义元素的意思
 		if (!isDefaultNamespace(ele)) {
 			return parseNestedCustomElement(ele, bd);
 		}
+		//如果元素类型是bean 那么就 解析bean 创建BeanDefinitionHolder
 		else if (nodeNameEquals(ele, BEAN_ELEMENT)) {
 			BeanDefinitionHolder nestedBd = parseBeanDefinitionElement(ele, bd);
 			if (nestedBd != null) {
@@ -977,6 +1046,7 @@ public class BeanDefinitionParserDelegate {
 			}
 			return nestedBd;
 		}
+		//如果是ref类型 创建RuntimeBeanReference类型 对其进行封装
 		else if (nodeNameEquals(ele, REF_ELEMENT)) {
 			// A generic reference to any name of any bean.
 			String refName = ele.getAttribute(BEAN_REF_ATTRIBUTE);
@@ -998,12 +1068,15 @@ public class BeanDefinitionParserDelegate {
 			ref.setSource(extractSource(ele));
 			return ref;
 		}
+		//如果是idref类型 那么就调用parseIdRefElement来解析
 		else if (nodeNameEquals(ele, IDREF_ELEMENT)) {
 			return parseIdRefElement(ele);
 		}
+		//如果是value类型 就调用parseValueElement来解析
 		else if (nodeNameEquals(ele, VALUE_ELEMENT)) {
 			return parseValueElement(ele, defaultValueType);
 		}
+		//todo  下面就是不同的类型 比如说map  list map 等 都会分别对应不同的解析器来完成。
 		else if (nodeNameEquals(ele, NULL_ELEMENT)) {
 			// It's a distinguished null value. Let's wrap it in a TypedStringValue
 			// object in order to preserve the source location.
@@ -1014,6 +1087,7 @@ public class BeanDefinitionParserDelegate {
 		else if (nodeNameEquals(ele, ARRAY_ELEMENT)) {
 			return parseArrayElement(ele, bd);
 		}
+		//todo 可以看下 解析list的过程
 		else if (nodeNameEquals(ele, LIST_ELEMENT)) {
 			return parseListElement(ele, bd);
 		}
@@ -1114,6 +1188,7 @@ public class BeanDefinitionParserDelegate {
 	/**
 	 * Parse a list element.
 	 */
+	//解析list类型的元素
 	public List<Object> parseListElement(Element collectionEle, @Nullable BeanDefinition bd) {
 		String defaultElementType = collectionEle.getAttribute(VALUE_TYPE_ATTRIBUTE);
 		NodeList nl = collectionEle.getChildNodes();
@@ -1121,6 +1196,7 @@ public class BeanDefinitionParserDelegate {
 		target.setSource(extractSource(collectionEle));
 		target.setElementTypeName(defaultElementType);
 		target.setMergeEnabled(parseMergeAttribute(collectionEle));
+		//todo 具体解析list元素的过程
 		parseCollectionElements(nl, target, bd, defaultElementType);
 		return target;
 	}
@@ -1141,10 +1217,11 @@ public class BeanDefinitionParserDelegate {
 
 	protected void parseCollectionElements(
 			NodeList elementNodes, Collection<Object> target, @Nullable BeanDefinition bd, String defaultElementType) {
-
+		//遍历所有的元素节点 并判断其类型是否是element
 		for (int i = 0; i < elementNodes.getLength(); i++) {
 			Node node = elementNodes.item(i);
 			if (node instanceof Element && !nodeNameEquals(node, DESCRIPTION_ELEMENT)) {
+				//又回到了解析parsePropertySubElement 方法，所以这是一个递归调用的过程
 				target.add(parsePropertySubElement((Element) node, bd, defaultElementType));
 			}
 		}
@@ -1352,17 +1429,27 @@ public class BeanDefinitionParserDelegate {
 		return parseCustomElement(ele, null);
 	}
 
+	//todo 解析自定义标签， 这个功能是spring集成第三方框架配置的关键
 	@Nullable
 	public BeanDefinition parseCustomElement(Element ele, @Nullable BeanDefinition containingBd) {
+		//从node节点 获取nameSpaceUri 命名空间
 		String namespaceUri = getNamespaceURI(ele);
 		if (namespaceUri == null) {
 			return null;
 		}
+		//然后根据对应的获取nameSpaceUri 获取到对应的namespaceHandler
+		//readerContext是xmlReaderContext xml读取的上下文，里面有
+		//	private final XmlBeanDefinitionReader reader;
+        //	private final NamespaceHandlerResolver namespaceHandlerResolver;
+		//XmlBeanDefinitionReader和NamespaceHandlerResolver这两个属性
+		//初始化的是DefaultNamespaceHandlerResolver
+		//todo 通过在META-INF/spring.handlers 里面的定义，动态类加载来获取
 		NamespaceHandler handler = this.readerContext.getNamespaceHandlerResolver().resolve(namespaceUri);
 		if (handler == null) {
 			error("Unable to locate Spring NamespaceHandler for XML schema namespace [" + namespaceUri + "]", ele);
 			return null;
 		}
+		//调用对应的handler去解析自定义标签
 		return handler.parse(ele, new ParserContext(this.readerContext, this, containingBd));
 	}
 
@@ -1419,8 +1506,15 @@ public class BeanDefinitionParserDelegate {
 		return originalDef;
 	}
 
+	/**
+	 * 解析自定义元素
+	 * @param ele
+	 * @param containingBd
+	 * @return
+	 */
 	@Nullable
 	private BeanDefinitionHolder parseNestedCustomElement(Element ele, @Nullable BeanDefinition containingBd) {
+		//todo 解析自定义元素的具体过程 返回一个bean定义
 		BeanDefinition innerDefinition = parseCustomElement(ele, containingBd);
 		if (innerDefinition == null) {
 			error("Incorrect usage of element '" + ele.getNodeName() + "' in a nested manner. " +
@@ -1433,6 +1527,10 @@ public class BeanDefinitionParserDelegate {
 			logger.trace("Using generated bean name [" + id +
 					"] for nested custom element '" + ele.getNodeName() + "'");
 		}
+		//创建新的BeanDefinitionHolder
+		//BeanDefinitionHolder里面有beanName,BeanDefinition 还有aliases[]别名数组
+		//包含的信息比BeanDefinition多，而且提供获取和利用这些信息的方法
+		//向ioc容器注册的时候 注册的也是BeanDefinitionHolder
 		return new BeanDefinitionHolder(innerDefinition, id);
 	}
 
@@ -1467,7 +1565,7 @@ public class BeanDefinitionParserDelegate {
 	 * <p>Subclasses may override the default implementation to provide a different
 	 * mechanism for comparing node names.
 	 * @param node the node to compare
-	 * @param desiredName the name to check for
+	 * @param desiredName the name to check for【
 	 */
 	public boolean nodeNameEquals(Node node, String desiredName) {
 		return desiredName.equals(node.getNodeName()) || desiredName.equals(getLocalName(node));

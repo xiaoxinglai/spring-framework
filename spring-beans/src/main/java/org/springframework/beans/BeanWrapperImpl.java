@@ -309,6 +309,11 @@ public class BeanWrapperImpl extends AbstractNestablePropertyAccessor implements
 			}
 		}
 
+		/**
+		 *  todo  调用set方法给bean的属性赋予值
+		 * @param value
+		 * @throws Exception
+		 */
 		@Override
 		public void setValue(final @Nullable Object value) throws Exception {
 			final Method writeMethod = (this.pd instanceof GenericTypeAwarePropertyDescriptor ?

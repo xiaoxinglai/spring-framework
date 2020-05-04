@@ -82,6 +82,14 @@ public abstract class AbstractPropertyAccessor extends TypeConverterSupport impl
 		setPropertyValues(pvs, ignoreUnknown, false);
 	}
 
+	/**
+	 * todo 设置属性值 也就是依赖注入
+	 *
+	 * @param pvs a PropertyValues to set on the target object
+	 * @param ignoreUnknown should we ignore unknown properties (not found in the bean)
+	 * @param ignoreInvalid should we ignore invalid properties (found but not accessible)
+	 * @throws BeansException
+	 */
 	@Override
 	public void setPropertyValues(PropertyValues pvs, boolean ignoreUnknown, boolean ignoreInvalid)
 			throws BeansException {
@@ -94,6 +102,7 @@ public abstract class AbstractPropertyAccessor extends TypeConverterSupport impl
 				// This method may throw any BeansException, which won't be caught
 				// here, if there is a critical failure such as no matching field.
 				// We can attempt to deal only with less serious exceptions.
+				//todo 设置属性
 				setPropertyValue(pv);
 			}
 			catch (NotWritablePropertyException ex) {

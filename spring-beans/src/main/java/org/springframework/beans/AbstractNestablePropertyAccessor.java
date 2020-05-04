@@ -246,6 +246,7 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 		nestedPa.setPropertyValue(tokens, new PropertyValue(propertyName, value));
 	}
 
+	//todo 设置属性
 	@Override
 	public void setPropertyValue(PropertyValue pv) throws BeansException {
 		PropertyTokenHolder tokens = (PropertyTokenHolder) pv.resolvedTokens;
@@ -269,16 +270,20 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 			setPropertyValue(tokens, pv);
 		}
 	}
-
+	//todo 注入属性
 	protected void setPropertyValue(PropertyTokenHolder tokens, PropertyValue pv) throws BeansException {
 		if (tokens.keys != null) {
+			//设置配置文件中的key:value对,例如.propertis中的属性
+			//todo key -value键值对属性  list map是直接在引用上修改
 			processKeyedProperty(tokens, pv);
 		}
 		else {
+			//todo 普通的bean属性  这里是调用的反射 set方法 进行赋值
 			processLocalProperty(tokens, pv);
 		}
 	}
 
+	//todo 属性注入
 	@SuppressWarnings("unchecked")
 	private void processKeyedProperty(PropertyTokenHolder tokens, PropertyValue pv) {
 		Object propValue = getPropertyHoldingValue(tokens);
@@ -289,7 +294,7 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 		}
 		Assert.state(tokens.keys != null, "No token keys");
 		String lastKey = tokens.keys[tokens.keys.length - 1];
-
+		//todo 对集合类型的属性，将其属性值解析为目标类型后，直接给属性赋值。
 		if (propValue.getClass().isArray()) {
 			Class<?> requiredType = propValue.getClass().getComponentType();
 			int arrayIndex = Integer.parseInt(lastKey);

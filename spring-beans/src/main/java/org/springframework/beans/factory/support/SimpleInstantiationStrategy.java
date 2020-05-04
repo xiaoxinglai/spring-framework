@@ -57,12 +57,19 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 	}
 
 
+	//todo 生成策略
 	@Override
 	public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner) {
 		// Don't override the class with CGLIB if no overrides.
-		if (!bd.hasMethodOverrides()) {
+		if (!bd.hasMethodOverrides()) {//todo 如果MethodOverrides 为空 就用反射 ，否则就用cglib
+			//这个MethodOverrides ，是方法重写集，用于确定运行时springIOC容器会重写托管对象的哪些方法
+			//methodOverrides列表 记录的是bean的属性中包含有lookup-method和replace-method属性的bean
+			//lookup-method 是当单例bean依赖非单例bean的时候，能够每次重新创建非单例bean的时候使用
+			//replace-method则是直接替换整个方法，用于替换的bean需要实现MethodReplacer接口 ，可以替换掉指定的方法
+			//拥有以上步骤的 需要cglib来动态生成子类代理 来解决 靠反射创建原来的实例无法解决
 			Constructor<?> constructorToUse;
 			synchronized (bd.constructorArgumentLock) {
+				//取得指定的构造器或者生成对象的工厂方法来对bean进行实例化
 				constructorToUse = (Constructor<?>) bd.resolvedConstructorOrFactoryMethod;
 				if (constructorToUse == null) {
 					final Class<?> clazz = bd.getBeanClass();
@@ -75,6 +82,7 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 									(PrivilegedExceptionAction<Constructor<?>>) clazz::getDeclaredConstructor);
 						}
 						else {
+							//todo 取的是无参构造器
 							constructorToUse = clazz.getDeclaredConstructor();
 						}
 						bd.resolvedConstructorOrFactoryMethod = constructorToUse;
@@ -84,10 +92,12 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 					}
 				}
 			}
+			//使用构造器 反射创建对象
 			return BeanUtils.instantiateClass(constructorToUse);
 		}
 		else {
 			// Must generate CGLIB subclass.
+			//
 			return instantiateWithMethodInjection(bd, beanName, owner);
 		}
 	}

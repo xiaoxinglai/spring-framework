@@ -180,11 +180,17 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 	}
 
 
+	// 解析resource转为BeanDefinitions
 	@Override
 	public int loadBeanDefinitions(Resource... resources) throws BeanDefinitionStoreException {
+		//如果resource为空则抛异常 终止
 		Assert.notNull(resources, "Resource array must not be null");
 		int count = 0;
+		//遍历所有resource 进行解析
 		for (Resource resource : resources) {
+			//核心方法 解析resource转为BeanDefinitions
+			//该方法是一个接口方法 定义在BeanDefinitionReader下，其实现类由子类实现 不同的子类不同的读取方式
+			//比如说XmlBeanDefinitionReader
 			count += loadBeanDefinitions(resource);
 		}
 		return count;
@@ -192,6 +198,7 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 
 	@Override
 	public int loadBeanDefinitions(String location) throws BeanDefinitionStoreException {
+		//根据路径解析
 		return loadBeanDefinitions(location, null);
 	}
 
@@ -210,17 +217,26 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 	 * @see #loadBeanDefinitions(org.springframework.core.io.Resource)
 	 * @see #loadBeanDefinitions(org.springframework.core.io.Resource[])
 	 */
+	//从指定资源路径加载bean定义
 	public int loadBeanDefinitions(String location, @Nullable Set<Resource> actualResources) throws BeanDefinitionStoreException {
+		//这里的ResourceLoader是DefaultResourceLoader 是XmlBeanReader在创建的时候初始化进去的
+		//就是入参的BeanFactory类型没有实现resource接口的话就是获取DefaultResourceLoader
 		ResourceLoader resourceLoader = getResourceLoader();
 		if (resourceLoader == null) {
 			throw new BeanDefinitionStoreException(
 					"Cannot load bean definitions from location [" + location + "]: no ResourceLoader available");
 		}
 
+		//对Resource的路径模式进行解析
 		if (resourceLoader instanceof ResourcePatternResolver) {
 			// Resource pattern matching available.
 			try {
+				//todo 核心方法 从local中加载得到所有的resource资源，可以有多个
+				//这里用到的ResourcePatternResolver 是一个接口 其实现类是有AbstractApplication里面的getResource方法 ,实际是是继承了DefaultResourceLoader的getResources方法
+				//因此具体过程看DefaultResourceLoader的getResources方法就行了
 				Resource[] resources = ((ResourcePatternResolver) resourceLoader).getResources(location);
+				//转到调用资源入口的loadBeanDefinitions去加载bean定义
+				//核心方法 通过resource去加载bean定义
 				int count = loadBeanDefinitions(resources);
 				if (actualResources != null) {
 					Collections.addAll(actualResources, resources);
@@ -237,7 +253,11 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 		}
 		else {
 			// Can only load single resources by absolute URL.
+			//调用DefaultResourceLoader的getResource完成具体的resource定位
+			//看DefaultResourceLoader的getResource的实现，不然的话 这个是ResourceLoader的接口 会有多个实现
+			//todo 核心方法 通过 resourceLoader.getResource 获取resource
 			Resource resource = resourceLoader.getResource(location);
+			//核心方法 通过resource去加载bean定义
 			int count = loadBeanDefinitions(resource);
 			if (actualResources != null) {
 				actualResources.add(resource);
@@ -249,6 +269,7 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 		}
 	}
 
+	//根据路径来获取beanDefinition
 	@Override
 	public int loadBeanDefinitions(String... locations) throws BeanDefinitionStoreException {
 		Assert.notNull(locations, "Location array must not be null");

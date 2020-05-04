@@ -101,15 +101,20 @@ class BeanDefinitionValueResolver {
 	 * @param value the value object to resolve
 	 * @return the resolved object
 	 */
+	//todo 给定一个属性 返回一个值
 	@Nullable
 	public Object resolveValueIfNecessary(Object argName, @Nullable Object value) {
 		// We must check each value to see whether it requires a runtime reference
 		// to another bean to be resolved.
+		//todo 如果属性值是一个引用类型
 		if (value instanceof RuntimeBeanReference) {
+			//转换为一个引用类型
 			RuntimeBeanReference ref = (RuntimeBeanReference) value;
+			//todo 解析BeanDefinition 为实例
 			return resolveReference(argName, ref);
 		}
 		else if (value instanceof RuntimeBeanNameReference) {
+			//如果本身是一个beanName的引用 那就说明这个属性已经是指向bean了  直接返回
 			String refName = ((RuntimeBeanNameReference) value).getBeanName();
 			refName = String.valueOf(doEvaluate(refName));
 			if (!this.beanFactory.containsBean(refName)) {
@@ -130,6 +135,8 @@ class BeanDefinitionValueResolver {
 					ObjectUtils.getIdentityHexString(bd);
 			return resolveInnerBean(argName, innerBeanName, bd);
 		}
+		//todo 如果是集合 都是遍历调用该方法挨个解析其元素
+		//todo 属性如果是数组
 		else if (value instanceof ManagedArray) {
 			// May need to resolve contained runtime references.
 			ManagedArray array = (ManagedArray) value;
@@ -154,10 +161,12 @@ class BeanDefinitionValueResolver {
 			}
 			return resolveManagedArray(argName, (List<?>) value, elementType);
 		}
+		//todo 属性如果是list
 		else if (value instanceof ManagedList) {
 			// May need to resolve contained runtime references.
 			return resolveManagedList(argName, (List<?>) value);
 		}
+		//todo 属性如果是set
 		else if (value instanceof ManagedSet) {
 			// May need to resolve contained runtime references.
 			return resolveManagedSet(argName, (Set<?>) value);
@@ -348,12 +357,16 @@ class BeanDefinitionValueResolver {
 	/**
 	 * Resolve a reference to another bean in the factory.
 	 */
+	//todo 解析一个引用为一个bean
 	@Nullable
 	private Object resolveReference(Object argName, RuntimeBeanReference ref) {
 		try {
 			Object bean;
+			//从runtimeBeanReference取得reference的名字  runtimeBeanReference是在BeanDefinition初始化时候生成的
 			String refName = ref.getBeanName();
+			//验证这个名字是否存在
 			refName = String.valueOf(doEvaluate(refName));
+			//如果这个ref在父容器中，就去父容器中找
 			if (ref.isToParent()) {
 				if (this.beanFactory.getParentBeanFactory() == null) {
 					throw new BeanCreationException(
@@ -361,9 +374,11 @@ class BeanDefinitionValueResolver {
 							"Can't resolve reference to bean '" + refName +
 							"' in parent factory: no parent factory available");
 				}
+				//todo 在父容器中getBean
 				bean = this.beanFactory.getParentBeanFactory().getBean(refName);
 			}
 			else {
+				//todo 在当前容器中getBean
 				bean = this.beanFactory.getBean(refName);
 				this.beanFactory.registerDependentBean(refName, this.beanName);
 			}
@@ -385,6 +400,7 @@ class BeanDefinitionValueResolver {
 	private Object resolveManagedArray(Object argName, List<?> ml, Class<?> elementType) {
 		Object resolved = Array.newInstance(elementType, ml.size());
 		for (int i = 0; i < ml.size(); i++) {
+			//todo 核心方法 resolveValueIfNecessary 一个兼容解析多种类型的方法
 			Array.set(resolved, i,
 					resolveValueIfNecessary(new KeyedArgName(argName, i), ml.get(i)));
 		}

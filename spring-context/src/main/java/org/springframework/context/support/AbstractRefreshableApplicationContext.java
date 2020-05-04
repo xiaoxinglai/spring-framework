@@ -123,15 +123,23 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	@Override
 	protected final void refreshBeanFactory() throws BeansException {
 		if (hasBeanFactory()) {
+			//销毁bean
 			destroyBeans();
+			//销毁beanFactory
 			closeBeanFactory();
 		}
 		try {
+			//创建容器DefaultListableBeanFactory
 			DefaultListableBeanFactory beanFactory = createBeanFactory();
 			beanFactory.setSerializationId(getId());
 			customizeBeanFactory(beanFactory);
+			//对容器进行初始化 载入beanDefinition 也是委托给子类完成 子类有多种获取初始化资源的方式
+			//比如说 从xml文件中获取bean
+			//AbstractXmlApplicationContext.loadBeanDefinitions(org.springframework.beans.factory.support.DefaultListableBeanFactory)
+			//todo 重点方法 加载loadBeanDefinition
 			loadBeanDefinitions(beanFactory);
 			synchronized (this.beanFactoryMonitor) {
+				//对字段赋值 ，该属性会在上一层的getBeanFactory()中返回
 				this.beanFactory = beanFactory;
 			}
 		}

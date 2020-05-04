@@ -139,6 +139,10 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 		super(parent);
 		setConfigLocations(configLocations);
 		if (refresh) {
+			//refresh是初始化容器的方法，容器初始化是指创建IOC容器，创建Resource ,创建BeanDefinitionReader
+			//并使用BeanDefinitionReader 通过Resource读取到bean的配置文件，将其转换为beanDefinitions并存储到
+			//IOC容器中， 这里的IOC容器的实现是DefaultListableBeanFactory
+			//所有的applicationContext都是调用的AbstractApplicationContext的refresh()方法
 			refresh();
 		}
 	}

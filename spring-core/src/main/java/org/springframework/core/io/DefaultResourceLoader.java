@@ -140,11 +140,28 @@ public class DefaultResourceLoader implements ResourceLoader {
 	}
 
 
+	/**
+	 * DefaultResourceLoader通过location路径获取具体Resource对象的过程
+	 *
+	 * Resource接口核心方法 getUrl getFile 用于获取资源，其有多个实现，分别对应从不同的环境获取资源，里面封装了IO操作的细节 以及获取资源的方式，比如说 classContextPath通过classLoad  而FileSystemContextResource 通过file文件系统相关接口获取
+	 * 这样外部就不需要关心如何IO的细节了，对外统一为resource
+	 * 其抽象类AbstractResource 的实现类有 FileSystemResource ByteArrayResource PathResource等
+	 * 其子接口ContextResource 的实现类有 ClassPathContextResource  ServletContextResource FileSystemContextResource 等 ，分别对应不同的环境的资源抽象
+	 *
+	 *
+	 * @param location the resource location
+	 * @return
+	 */
 	@Override
 	public Resource getResource(String location) {
 		Assert.notNull(location, "Location must not be null");
 
 		for (ProtocolResolver protocolResolver : this.protocolResolvers) {
+			//ProtocolResolver协议解析器 解析location的类型
+			//是classpath 还是url 分别返回ClassPathContextResource或者UrlResource 等等
+			// 如果都不是
+			// 就走下面的流程getResourceByPath方法 默认的实现是返回一个ClassPathContextResource 但是往往是从子类中获取
+			//比如说FileSystemXmlApplicationContext.getResourceByPath() 就是重写了这个方法
 			Resource resource = protocolResolver.resolve(location, this);
 			if (resource != null) {
 				return resource;
@@ -152,19 +169,27 @@ public class DefaultResourceLoader implements ResourceLoader {
 		}
 
 		if (location.startsWith("/")) {
+			//如果是/开头
+			//默认的实现是返回一个ClassPathContextResource 但是往往是从子类中获取
+			//比如说FileSystemXmlApplicationContext.getResourceByPath() 就是重写了这个方法
 			return getResourceByPath(location);
 		}
 		else if (location.startsWith(CLASSPATH_URL_PREFIX)) {
+			//如果是 classpath:开头 返回 ClassPathResource
 			return new ClassPathResource(location.substring(CLASSPATH_URL_PREFIX.length()), getClassLoader());
 		}
 		else {
 			try {
 				// Try to parse the location as a URL...
 				URL url = new URL(location);
+				//如果是url开头 返回FileUrlResource
 				return (ResourceUtils.isFileURL(url) ? new FileUrlResource(url) : new UrlResource(url));
 			}
 			catch (MalformedURLException ex) {
+				//如果都不行，
 				// No URL -> resolve as resource path.
+				//默认的实现是返回一个ClassPathContextResource 但是往往是从子类中获取
+				//比如说FileSystemXmlApplicationContext.getResourceByPath() 就是重写了这个方法
 				return getResourceByPath(location);
 			}
 		}
@@ -180,6 +205,12 @@ public class DefaultResourceLoader implements ResourceLoader {
 	 * @see ClassPathResource
 	 * @see org.springframework.context.support.FileSystemXmlApplicationContext#getResourceByPath
 	 * @see org.springframework.web.context.support.XmlWebApplicationContext#getResourceByPath
+	 */
+	/**
+	 * 	//默认的实现是返回一个ClassPathContextResource 但是往往是从子类中获取
+	 //比如说FileSystemXmlApplicationContext.getResourceByPath() 就是重写了这个方法“
+	 * @param path
+	 * @return
 	 */
 	protected Resource getResourceByPath(String path) {
 		return new ClassPathContextResource(path, getClassLoader());

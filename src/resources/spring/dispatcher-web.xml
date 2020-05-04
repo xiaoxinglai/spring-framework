@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                        http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+                         http://www.springframework.org/schema/context
+                        http://www.springframework.org/schema/context/spring-context-3.2.xsd
+                        http://www.springframework.org/schema/mvc
+                        http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+
+    <!-- 默认使用基于注释的适配器和映射器 -->
+    <mvc:annotation-driven/>
+    <!-- 只把动态信息当做controller处理，忽略静态信息 -->
+    <mvc:default-servlet-handler/>
+    <!-- 自动扫描包中的Controlller -->
+    <context:component-scan base-package="Service"/>
+    <!-- 启用aspect注解 true表示支持基于类生成 这样需要用到cglib  false表示基于接口生成  -->
+    <aop:aspectj-autoproxy proxy-target-class="true"/>
+
+    <!--HandlerMapping 无需配置，springmvc可以默认启动-->
+
+    <!--&lt;!&ndash;静态资源映射&ndash;&gt;-->
+    <!--&lt;!&ndash;本项目把静态资源放在了WEB-INF的statics目录下，资源映射如下&ndash;&gt;-->
+    <!--<mvc:resources mapping="/css/**" location="/WEB-INF/statics/css/"/>-->
+    <!--<mvc:resources mapping="/js/**" location="/WEB-INF/statics/js/"/>-->
+    <!--<mvc:resources mapping="/image/**" location="/WEB-INF/statics/image/"/>-->
+    <!--<mvc:resources mapping="/font/**" location="/WEB-INF/statics/font/"/>-->
+    <!--<mvc:resources mapping="/uploadfile/**" location="/WEB-INF/statics/uploadfile/"/>-->
+
+
+
+
+    <!--&lt;!&ndash; 对模型视图名称的解析，即在模型视图名称添加前后缀(如果最后一个还是表示文件夹,则最后的斜杠不要漏了) 使用JSP&ndash;&gt;-->
+    <!--&lt;!&ndash; 默认的视图解析器 在上边的解析错误时使用 (默认使用html)- &ndash;&gt;-->
+    <!--<bean id="defaultViewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">-->
+        <!--<property name="viewClass" value="org.springframework.web.servlet.view.JstlView"/>-->
+        <!--<property name="prefix" value="/WEB-INF/view/"/>&lt;!&ndash;设置JSP文件的目录位置&ndash;&gt;-->
+        <!--<property name="suffix" value=".jsp"/>-->
+    <!--</bean>-->
+
+    <!--&lt;!&ndash; 定义文件解释器 &ndash;&gt;-->
+    <!--<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">-->
+        <!--&lt;!&ndash; 设置默认编码 &ndash;&gt;-->
+        <!--<property name="defaultEncoding" value="utf-8"></property>-->
+        <!--&lt;!&ndash; 上传图片最大大小5M&ndash;&gt;-->
+        <!--<property name="maxUploadSize" value="5242440"></property>-->
+    <!--</bean>-->
+
+
+</beans>

@@ -817,14 +817,25 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 		// Iterate over a copy to allow for init methods which in turn register new bean definitions.
 		// While this may not be part of the regular factory bootstrap, it does otherwise work fine.
+
+		//获取所有的beanNames ,beanDefinitionNames里面按顺序存储了所有的beanDefinition的beanNames
 		List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
 
 		// Trigger initialization of all non-lazy singleton beans...
+		//触发 所有的 非懒加载的单例bean 挨个进行初始化
 		for (String beanName : beanNames) {
+			//通过beanName获取BeanDefinition ，该方法会从父容器和子容器合并集合中查找BeanDefinition
 			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
+			//如果 BeanDefinition 非抽象，是单例  且非懒加载 那么继续下一个流程 否则忽略
 			if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
+
+				//检查是否是FactoryBean类型 如果不是 ，直接跳转到调用getBean
 				if (isFactoryBean(beanName)) {
+					//是FactoryBean  调用getBean( FACTORY_BEAN_PREFIX + beanName)
+					//BeanName加了前缀，初始化的是就是FactoryBean 本身，而不是通过FactoryBean产生的Bean
 					Object bean = getBean(FACTORY_BEAN_PREFIX + beanName);
+					//获取到的是FactoryBean类型， 那么判断其类型是否需要热切加载，如果是就初始化这个FactoryBean  产生的Bean
+					//todo 需要区分出 Bean和FactoryBean的区别，FactoryBean是一类特殊的Bean, 其内部产生新的Bean才是真正的需要的Bean
 					if (bean instanceof FactoryBean) {
 						final FactoryBean<?> factory = (FactoryBean<?>) bean;
 						boolean isEagerInit;
@@ -880,6 +891,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 		if (beanDefinition instanceof AbstractBeanDefinition) {
 			try {
+				//验证不能将静态工厂方法与方法重写相结合(静态工厂方法必须创建实例)
 				((AbstractBeanDefinition) beanDefinition).validate();
 			}
 			catch (BeanDefinitionValidationException ex) {
@@ -888,7 +900,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			}
 		}
 
+		//优先尝试从缓存中加载BeanDefinition
 		BeanDefinition existingDefinition = this.beanDefinitionMap.get(beanName);
+		//检查是否有相同名字的bean存在了，如果有，但是容器设置了不许覆盖，就会抛异常
 		if (existingDefinition != null) {
 			if (!isAllowBeanDefinitionOverriding()) {
 				throw new BeanDefinitionOverrideException(beanName, beanDefinition, existingDefinition);
@@ -915,17 +929,32 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 							"] with [" + beanDefinition + "]");
 				}
 			}
+			//存储到beanDefinitionMap中去 ，key为beanName value为beanDefinition
 			this.beanDefinitionMap.put(beanName, beanDefinition);
 		}
 		else {
+			//如果之前没有相同的BeanDefinition存在
+
+
+			//bean已经在创建中(如果bean实例化过一次 就会被记录在alreadyCreated列表中 )
 			if (hasBeanCreationStarted()) {
 				// Cannot modify startup-time collection elements anymore (for stable iteration)
+				//bean如果都在创建过程中了，就需要加锁进行注册
 				synchronized (this.beanDefinitionMap) {
+					//存储到beanDefinitionMap中去 ，key为beanName value为beanDefinition
 					this.beanDefinitionMap.put(beanName, beanDefinition);
+					//刷新beanDefinitionNames
+
+					//创建新数组 长度比之前+1
 					List<String> updatedDefinitions = new ArrayList<>(this.beanDefinitionNames.size() + 1);
+					//合并以前的beanDefinitionNames的内容
 					updatedDefinitions.addAll(this.beanDefinitionNames);
+					//新增新的names
 					updatedDefinitions.add(beanName);
 					this.beanDefinitionNames = updatedDefinitions;
+					//如果手动的单例列表里面包含了该beanName(手动单例列表，是维护了一份 直接通过代码set进去的单例对象，比如说 xmlBeanFactory.registerSingleton("demo", new Demo());)
+					//如果之前已经手动设置过了单例，现在框架又来实例化一次，就会破坏掉单例的性质，因此需要检查
+					//如果包含 那么就将其从手动单例列表中移除，说明其已经不是手动单例的状态了
 					if (this.manualSingletonNames.contains(beanName)) {
 						Set<String> updatedSingletons = new LinkedHashSet<>(this.manualSingletonNames);
 						updatedSingletons.remove(beanName);
@@ -935,13 +964,16 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			}
 			else {
 				// Still in startup registration phase
+				//存储到beanDefinitionMap中去 ，key为beanName value为beanDefinition
 				this.beanDefinitionMap.put(beanName, beanDefinition);
+				//记录所有的BeanName
 				this.beanDefinitionNames.add(beanName);
+				//从手动单例列表中移除， 如果该列表中有这个beanName的话，说明其已经不是手动单例的状态了
 				this.manualSingletonNames.remove(beanName);
 			}
 			this.frozenBeanDefinitionNames = null;
 		}
-
+		//如果已经存在了一个Definition，那么就将这个以前的bean相关的信息都重置掉 然后销毁这个bean
 		if (existingDefinition != null || containsSingleton(beanName)) {
 			resetBeanDefinition(beanName);
 		}

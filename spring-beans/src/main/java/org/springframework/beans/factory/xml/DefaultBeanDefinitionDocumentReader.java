@@ -90,6 +90,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	 * <p>Opens a DOM Document; then initializes the default settings
 	 * specified at the {@code <beans/>} level; then parses the contained bean definitions.
 	 */
+	//按spring的bean规则来解析document文件
 	@Override
 	public void registerBeanDefinitions(Document doc, XmlReaderContext readerContext) {
 		this.readerContext = readerContext;
@@ -126,6 +127,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 		// then ultimately reset this.delegate back to its original (parent) reference.
 		// this behavior emulates a stack of delegates without actually necessitating one.
 		BeanDefinitionParserDelegate parent = this.delegate;
+		//创建BeanDefinitionParserDelegate，由这个对象来完成真正bean定义的解析
 		this.delegate = createDelegate(getReaderContext(), root, parent);
 
 		if (this.delegate.isDefaultNamespace(root)) {
@@ -146,6 +148,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 		}
 
 		preProcessXml(root);
+		//todo 核心方法 在parseBeanDefinitions方法里面 调用BeanDefinitionParserDelegate来完成解析
 		parseBeanDefinitions(root, this.delegate);
 		postProcessXml(root);
 
@@ -173,6 +176,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 				if (node instanceof Element) {
 					Element ele = (Element) node;
 					if (delegate.isDefaultNamespace(ele)) {
+						//todo 核心方法 解析xml里面的每一个元素
 						parseDefaultElement(ele, delegate);
 					}
 					else {
@@ -194,6 +198,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 			processAliasRegistration(ele);
 		}
 		else if (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) {
+			//todo 核心方法 具体的处理委托给BeanDefinitionParserDelegate来完成
 			processBeanDefinition(ele, delegate);
 		}
 		else if (delegate.nodeNameEquals(ele, NESTED_BEANS_ELEMENT)) {
@@ -303,18 +308,24 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	 * and registering it with the registry.
 	 */
 	protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
+		//todo 核心方法parseBeanDefinitionElement delegate的该方法就是解析xml的元素为beanDefinition
+		//BeanDefinitionHolder是BeanDefinition对象的封装类，封装了BeanDefinition  Bean的名字和别名 ，用它完成向IOC容器的注册
+		//todo 解析xml元素的地方
 		BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
 		if (bdHolder != null) {
 			bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
 			try {
 				// Register the final decorated instance.
+				//todo 这里是向IOC容器注册解析得到BeanDefinition的地方
 				BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
 			}
 			catch (BeanDefinitionStoreException ex) {
 				getReaderContext().error("Failed to register bean definition with name '" +
 						bdHolder.getBeanName() + "'", ele, ex);
 			}
+			//在beanDefinition向IOC容器注册完以后，发送消息
 			// Send registration event.
+			//
 			getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
 		}
 	}

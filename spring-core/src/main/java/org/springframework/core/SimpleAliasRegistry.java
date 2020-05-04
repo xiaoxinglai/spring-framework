@@ -47,24 +47,33 @@ public class SimpleAliasRegistry implements AliasRegistry {
 	private final Map<String, String> aliasMap = new ConcurrentHashMap<>(16);
 
 
+	// 注册别名
 	@Override
 	public void registerAlias(String name, String alias) {
 		Assert.hasText(name, "'name' must not be empty");
 		Assert.hasText(alias, "'alias' must not be empty");
 		synchronized (this.aliasMap) {
+			// 如果beanName与别名相同
 			if (alias.equals(name)) {
+				//移除别名
 				this.aliasMap.remove(alias);
 				if (logger.isDebugEnabled()) {
 					logger.debug("Alias definition '" + alias + "' ignored since it points to same name");
 				}
 			}
 			else {
+				//尝试从aliasMap缓存中获取别名
 				String registeredName = this.aliasMap.get(alias);
+				//如果别名已经在缓存中存在
 				if (registeredName != null) {
+					//缓存中的beaName和传入的beanName相同,不做任何操作,不需要再次注册
+					//说明已经注册过了
 					if (registeredName.equals(name)) {
 						// An existing alias - no need to re-register
 						return;
 					}
+					//如果不同 即同一个别名指向了多个beanName
+					//又不允许覆盖的话， 就抛异常
 					if (!allowAliasOverriding()) {
 						throw new IllegalStateException("Cannot define alias '" + alias + "' for name '" +
 								name + "': It is already registered for name '" + registeredName + "'.");
@@ -74,7 +83,10 @@ public class SimpleAliasRegistry implements AliasRegistry {
 								registeredName + "' with new target name '" + name + "'");
 					}
 				}
+				//判断别名是否循环 比如说  别名A是BeanName的别名， BeanName 又是别名A的别名
+				//内部的检查逻辑是检查 给定的名称是否注册了给定的别名
 				checkForAliasCircle(name, alias);
+				//设置别名 key为别名 name是beanName
 				this.aliasMap.put(alias, name);
 				if (logger.isTraceEnabled()) {
 					logger.trace("Alias definition '" + alias + "' registered for name '" + name + "'");
