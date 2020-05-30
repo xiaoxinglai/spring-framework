@@ -158,6 +158,7 @@ public abstract class AbstractRefreshableWebApplicationContext extends AbstractR
 	 */
 	@Override
 	protected ConfigurableEnvironment createEnvironment() {
+		//如果是xmlWebApplicationContext容器 则是创建StandardServletEnvironment对象
 		return new StandardServletEnvironment();
 	}
 
@@ -207,8 +208,10 @@ public abstract class AbstractRefreshableWebApplicationContext extends AbstractR
 	 */
 	@Override
 	protected void initPropertySources() {
+		//获取上下文环境中的属性源 以占位符的形式
 		ConfigurableEnvironment env = getEnvironment();
 		if (env instanceof ConfigurableWebEnvironment) {
+			//将占位符替换成真正的属性 也就是从servletContext和servletConfig中把对应的属性值取出来
 			((ConfigurableWebEnvironment) env).initPropertySources(this.servletContext, this.servletConfig);
 		}
 	}

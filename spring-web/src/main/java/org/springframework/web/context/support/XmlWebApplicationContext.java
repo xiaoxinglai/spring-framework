@@ -85,6 +85,7 @@ public class XmlWebApplicationContext extends AbstractRefreshableWebApplicationC
 		// Configure the bean definition reader with this context's
 		// resource loading environment.
 		beanDefinitionReader.setEnvironment(getEnvironment());
+		//设置resourceLoader 就是xmlWebApplicationContext本身  其也实现了ResourceLoader接口
 		beanDefinitionReader.setResourceLoader(this);
 		beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
 
@@ -132,6 +133,7 @@ public class XmlWebApplicationContext extends AbstractRefreshableWebApplicationC
 	 * and "/WEB-INF/test-servlet.xml" for a context with the namespace "test-servlet"
 	 * (like for a DispatcherServlet instance with the servlet-name "test").
 	 */
+	//如果 web.xml 中没有配置 contextConfigLocation 参数，则会拿到 Spring 默认的配置路径：/WEB-INF/applicationContext.xml
 	@Override
 	protected String[] getDefaultConfigLocations() {
 		if (getNamespace() != null) {

@@ -161,14 +161,27 @@ public abstract class BeanDefinitionReaderUtils {
 			BeanDefinitionHolder definitionHolder, BeanDefinitionRegistry registry)
 			throws BeanDefinitionStoreException {
 		//先从definitionHolder里面取出名字
+		// Register bean definition under primary name.
+		// 1.拿到beanName
 		String beanName = definitionHolder.getBeanName();
 		//调用registerBeanDefinition方法注册
+		// 2.注册beanName、BeanDefinition到缓存中（核心逻辑）,实现类为; DefaultListableBeanFactory
+
+//		我们可以重新梳理一下思路，我们首先将 xml 中的 bean 配置信息进行了解析，并构建了 AbstractBeanDefinition（GenericBeanDefinition） 对象来存放所有解析出来的属性。
+//		然后，我们将 AbstractBeanDefinition 、beanName、aliasesArray 构建成 BeanDefinitionHolder 对象并返回。
+//		最后，我们通过 BeanDefinitionHolder 将 BeanDefinition 和 beanName 注册到 BeanFactory 中，也就是存放到缓存中。
+//		执行完 parseDefaultElement 方法，我们得到了两个重要的缓存：
+//		beanDefinitionNames 缓存。
+//		beanDefinitionMap 缓存。
+
 		registry.registerBeanDefinition(beanName, definitionHolder.getBeanDefinition());
 		//取出别名
+		// 注册bean名称的别名（如果有的话）
 		String[] aliases = definitionHolder.getAliases();
 		if (aliases != null) {
 			for (String alias : aliases) {
 				//设置别名
+				//3.注册bean的beanName和对应的别名映射到缓存中（缓存：aliasMap）
 				registry.registerAlias(beanName, alias);
 			}
 		}

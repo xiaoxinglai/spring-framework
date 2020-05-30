@@ -187,10 +187,13 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 		Assert.notNull(resources, "Resource array must not be null");
 		int count = 0;
 		//遍历所有resource 进行解析
+		// 1.遍历所有的Resource
 		for (Resource resource : resources) {
 			//核心方法 解析resource转为BeanDefinitions
 			//该方法是一个接口方法 定义在BeanDefinitionReader下，其实现类由子类实现 不同的子类不同的读取方式
 			//比如说XmlBeanDefinitionReader
+
+			// 2.根据Resource加载bean的定义，XmlBeanDefinitionReader实现
 			count += loadBeanDefinitions(resource);
 		}
 		return count;
@@ -221,6 +224,7 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 	public int loadBeanDefinitions(String location, @Nullable Set<Resource> actualResources) throws BeanDefinitionStoreException {
 		//这里的ResourceLoader是DefaultResourceLoader 是XmlBeanReader在创建的时候初始化进去的
 		//就是入参的BeanFactory类型没有实现resource接口的话就是获取DefaultResourceLoader
+		// 1.获取 resourceLoader，这边为 XmlWebApplicationContext
 		ResourceLoader resourceLoader = getResourceLoader();
 		if (resourceLoader == null) {
 			throw new BeanDefinitionStoreException(
@@ -228,15 +232,19 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 		}
 
 		//对Resource的路径模式进行解析
+		// 2.判断 resourceLoader 是否为 ResourcePatternResolver 的实例
+		//这里的resourceLoader是webApplicationContext实例 其也是实现了ResourcePatternResolver接口的
 		if (resourceLoader instanceof ResourcePatternResolver) {
 			// Resource pattern matching available.
 			try {
 				//todo 核心方法 从local中加载得到所有的resource资源，可以有多个
 				//这里用到的ResourcePatternResolver 是一个接口 其实现类是有AbstractApplication里面的getResource方法 ,实际是是继承了DefaultResourceLoader的getResources方法
 				//因此具体过程看DefaultResourceLoader的getResources方法就行了
+				// 2.1 根据路径拿到该路径下所有符合的配置文件，并封装成Resource
 				Resource[] resources = ((ResourcePatternResolver) resourceLoader).getResources(location);
 				//转到调用资源入口的loadBeanDefinitions去加载bean定义
 				//核心方法 通过resource去加载bean定义
+				// 2.2 根据Resource，加载Bean的定义
 				int count = loadBeanDefinitions(resources);
 				if (actualResources != null) {
 					Collections.addAll(actualResources, resources);
@@ -253,11 +261,14 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 		}
 		else {
 			// Can only load single resources by absolute URL.
+			// 3.只能通过绝对URL加载单个资源
+
 			//调用DefaultResourceLoader的getResource完成具体的resource定位
 			//看DefaultResourceLoader的getResource的实现，不然的话 这个是ResourceLoader的接口 会有多个实现
 			//todo 核心方法 通过 resourceLoader.getResource 获取resource
 			Resource resource = resourceLoader.getResource(location);
 			//核心方法 通过resource去加载bean定义
+			// 3.1 根据Resource，加载Bean的定义
 			int count = loadBeanDefinitions(resource);
 			if (actualResources != null) {
 				actualResources.add(resource);

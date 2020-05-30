@@ -596,26 +596,14 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		//为什么遇到有bean在 正在创建的单例列表 中，就说明了循环依赖呢，创建A,但是A依赖了B ,B开始创建，而B又依赖A, 因此需要创建A，这个时候就会发现
 		//A已经在创建列表中了。
 
-		//todo 解决思路：
-		//这里有四个关键地方 第一个是AbstractBeanFactory.doGetBean 方法的里面的开头  getSingleton(beanName) 方法
-		//这里是第一次调用 getSingleton
-		//然后是在 这个类的doCreateBean方法中 ，调用 addSingletonFactory 方法 ，然后再次调用 getSingleton方法
-
-		//因此过程就是 getSingleton addSingletonFactory将自己放到三级缓存  填充属性  再次getSingleton方法 将自己移动到二级缓存
-
-		//getSingleton方法的过程 就是先从一级缓存中取，没有的话从二级缓存中取，如果还没的话 ，就从三级缓存中取，然后设置到二级缓存中 再返回
-		//addSingletonFactory方法 则是设置第三集缓存
 
 		//getBean(A), A第一次在getSingleton取不到， 将自己放到正在创建的列表中，然后会creatBean(A) 并将自己加入到第三级缓存中singletonFactories，
 		// 然后在填充属性时候发现 A依赖了B 那么就实例化B ，
 		// 然后B第一次在getSingleton取不到，将自己放到正在创建的列表中， B也将自己加入到第三级缓存中，然后发现自己依赖了A，, 会再次尝试去getBean(A)
 		// 此时就能在getSingleton中找到A的第三级缓存，并将A移动到第二级缓存中，返回A, 此时B就已经完成了实例化，会清空B的二三级缓存，并将自己设置到单例池中，B就实例化完了，那么A也就可以实例化完成了，然后清空A的二三级缓存 并将自己设置到单例池中。
-
 		//那么这里的二级缓存 earlySingletonObjects 只是一个用来记录bean的状态的列表 ，其实不用它也可以完成循环依赖的解决
 		//earlySingletonObjects会校验A状态是否是完整的依赖的时候用到
-
 		//在spring中 就是singletonFactories（第三级缓存）和earlySingletonObjects（这里存的就是实例 未完成状态的Bean 第二级）
-
 		boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
 				isSingletonCurrentlyInCreation(beanName));
 		if (earlySingletonExposure) {
@@ -1513,8 +1501,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 */
 	protected void autowireByName(
 			String beanName, AbstractBeanDefinition mbd, BeanWrapper bw, MutablePropertyValues pvs) {
-
+		//获取所有的不是普通属性（普通指的基本类型，字符串，数字类型，日期，URL，URI一个Local类或者一个Class对象）的元素的name（name从BeanWrapper中获取）数组
 		String[] propertyNames = unsatisfiedNonSimpleProperties(mbd, bw);
+		//按照获取的名称去找对应的bean，并添加到依赖缓存集合中记录
 		for (String propertyName : propertyNames) {
 			if (containsBean(propertyName)) {
 				Object bean = getBean(propertyName);

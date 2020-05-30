@@ -94,6 +94,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	@Override
 	public void registerBeanDefinitions(Document doc, XmlReaderContext readerContext) {
 		this.readerContext = readerContext;
+		// 2.通过拿到的节点，注册 Bean 定义
 		doRegisterBeanDefinitions(doc.getDocumentElement());
 	}
 
@@ -127,16 +128,22 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 		// then ultimately reset this.delegate back to its original (parent) reference.
 		// this behavior emulates a stack of delegates without actually necessitating one.
 		BeanDefinitionParserDelegate parent = this.delegate;
+
 		//创建BeanDefinitionParserDelegate，由这个对象来完成真正bean定义的解析
 		this.delegate = createDelegate(getReaderContext(), root, parent);
 
+		// 1.校验root节点的命名空间是否为默认的命名空间（默认命名空间http://www.springframework.org/schema/beans）
 		if (this.delegate.isDefaultNamespace(root)) {
+			// 2.处理profile属性 指的是根节点beans里面的属性 profile  判断其跟环境中的spring.active.profile的值是否一致
+			// web.xml 中也可以通过参数 context-param标签下内的值 spring.profiles.active 来配置。
 			String profileSpec = root.getAttribute(PROFILE_ATTRIBUTE);
 			if (StringUtils.hasText(profileSpec)) {
 				String[] specifiedProfiles = StringUtils.tokenizeToStringArray(
 						profileSpec, BeanDefinitionParserDelegate.MULTI_VALUE_ATTRIBUTE_DELIMITERS);
 				// We cannot use Profiles.of(...) since profile expressions are not supported
 				// in XML config. See SPR-12458 for details.
+
+				//校验当前节点的 profile 是否符合当前环境定义的, 如果不是则直接跳过, 不解析该节点下的内容
 				if (!getReaderContext().getEnvironment().acceptsProfiles(specifiedProfiles)) {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Skipped XML bean definition file due to specified profiles [" + profileSpec +
@@ -147,9 +154,12 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 			}
 		}
 
+		// 3.解析前处理, 留给子类实现
 		preProcessXml(root);
 		//todo 核心方法 在parseBeanDefinitions方法里面 调用BeanDefinitionParserDelegate来完成解析
+		// 4.解析并注册bean定义
 		parseBeanDefinitions(root, this.delegate);
+		// 5.解析后处理, 留给子类实现
 		postProcessXml(root);
 
 		this.delegate = parent;
@@ -169,40 +179,53 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	 * @param root the DOM root element of the document
 	 */
 	protected void parseBeanDefinitions(Element root, BeanDefinitionParserDelegate delegate) {
+		// 1.默认命名空间的处理
 		if (delegate.isDefaultNamespace(root)) {
 			NodeList nl = root.getChildNodes();
+			// 遍历root的子节点列表
 			for (int i = 0; i < nl.getLength(); i++) {
 				Node node = nl.item(i);
 				if (node instanceof Element) {
 					Element ele = (Element) node;
 					if (delegate.isDefaultNamespace(ele)) {
 						//todo 核心方法 解析xml里面的每一个元素
+						// 1.1 默认命名空间节点的处理，例如：<bean id="test" class="" />
 						parseDefaultElement(ele, delegate);
 					}
 					else {
+						// 1.2 自定义命名空间节点的处理，例如：
+						// <context:component-scan/>、 因为默认命名空间是 http://www.springframework.org/schema/beans
+						// context标签属于http://www.springframework.org/schema/context
+						// <aop:aspectj-autoproxy/>
 						delegate.parseCustomElement(ele);
 					}
 				}
 			}
 		}
 		else {
+			// 2.自定义命名空间的处理
 			delegate.parseCustomElement(root);
 		}
 	}
 
 	private void parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate) {
+     //默认命名空间的一级节点只有 4 种：import、alias、bean、beans 都在最外层的<beans>标签里面
+
 		if (delegate.nodeNameEquals(ele, IMPORT_ELEMENT)) {
+			// 1.对import标签的处理
 			importBeanDefinitionResource(ele);
 		}
 		else if (delegate.nodeNameEquals(ele, ALIAS_ELEMENT)) {
+			// 2.对alias标签的处理
 			processAliasRegistration(ele);
 		}
 		else if (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) {
 			//todo 核心方法 具体的处理委托给BeanDefinitionParserDelegate来完成
+			// 3.对bean标签的处理(最复杂最重要)
 			processBeanDefinition(ele, delegate);
 		}
+		// 4.对beans标签的处理
 		else if (delegate.nodeNameEquals(ele, NESTED_BEANS_ELEMENT)) {
-			// recurse
 			doRegisterBeanDefinitions(ele);
 		}
 	}
@@ -311,12 +334,16 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 		//todo 核心方法parseBeanDefinitionElement delegate的该方法就是解析xml的元素为beanDefinition
 		//BeanDefinitionHolder是BeanDefinition对象的封装类，封装了BeanDefinition  Bean的名字和别名 ，用它完成向IOC容器的注册
 		//todo 解析xml元素的地方
+
+		// 1.进行节点定义解析, 经过这个方法后，bdHolder会包含一个Bean节点的所有属性，例如name、class、id
 		BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
 		if (bdHolder != null) {
+			// 2.若存在默认标签的子节点下再有自定义属性，需要再次对自定义标签再进行解析(基本不用，不做深入解析)
 			bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
 			try {
 				// Register the final decorated instance.
 				//todo 这里是向IOC容器注册解析得到BeanDefinition的地方
+				// 3.解析节点定义完成后，需要对解析后的bdHolder进行注册
 				BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
 			}
 			catch (BeanDefinitionStoreException ex) {
@@ -326,6 +353,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 			//在beanDefinition向IOC容器注册完以后，发送消息
 			// Send registration event.
 			//
+			// 4.最后发出响应事件，通知相关的监听器，这个Bean已经加载完成了
 			getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
 		}
 	}

@@ -90,6 +90,7 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 	 * @see #DEFAULT_HANDLER_MAPPINGS_LOCATION
 	 */
 	public DefaultNamespaceHandlerResolver(@Nullable ClassLoader classLoader) {
+		//路径默认是META-INF/spring.handlers
 		this(classLoader, DEFAULT_HANDLER_MAPPINGS_LOCATION);
 	}
 
@@ -168,6 +169,7 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 	 * @return
 	 */
 	private Map<String, Object> getHandlerMappings() {
+		//handlerMappings 里面存储的是uri和对应的handler
 		Map<String, Object> handlerMappings = this.handlerMappings;
 		if (handlerMappings == null) {
 			//加锁同步

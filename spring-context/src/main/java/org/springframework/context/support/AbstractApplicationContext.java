@@ -314,6 +314,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	@Override
 	public ConfigurableEnvironment getEnvironment() {
 		if (this.environment == null) {
+			// 1.创建Environment
 			this.environment = createEnvironment();
 		}
 		return this.environment;
@@ -325,6 +326,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * a custom {@link ConfigurableEnvironment} implementation.
 	 */
 	protected ConfigurableEnvironment createEnvironment() {
+		//返回StandardEnvironment对象
 		return new StandardEnvironment();
 	}
 
@@ -520,11 +522,20 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	public void refresh() throws BeansException, IllegalStateException {
 		synchronized (this.startupShutdownMonitor) {
 			// Prepare this context for refreshing.
-
+			//初始化容器之前的准备 比如说获取环境属性
 			prepareRefresh();
 
 			// Tell the subclass to refresh the internal bean factory.
 			//该方法创建一个ioc容器 并加载xml中的资源转为beanDefinition对象填充进去
+
+			//如果解析到<context:component-scan base-package="" /> 注解时，
+			// 会扫描 base-package 指定的目录，将该目录下使用指定注解（@Controller、@Service、@Component、@Repository）
+			// 的 bean 定义也同样封装成 BeanDefinition，加载到 BeanFactory 中。
+
+			//加载到 BeanFactory 中” 的内容主要指的是添加到以下3个缓存：
+			//beanDefinitionNames缓存：所有被加载到 BeanFactory 中的 bean 的 beanName 集合。
+			//beanDefinitionMap缓存：所有被加载到 BeanFactory 中的 bean 的 beanName 和 BeanDefinition 映射。
+			//aliasMap缓存：所有被加载到 BeanFactory 中的 bean 的 beanName 和别名映射。
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// Prepare the bean factory for use in this context.
@@ -554,6 +565,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
+				//比如说SpringBoot里面的内置tomcat就是在这里进行启动的
 				onRefresh();
 
 				// Check for listener beans and register them.
@@ -615,6 +627,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		}
 
 		// Initialize any placeholder property sources in the context environment.
+		//初始化环境配置属性
+		//留给子类来实现 比如说org.springframework.web.context.support.AbstractRefreshableWebApplicationContext.initPropertySources()
 		initPropertySources();
 
 		// Validate that all properties marked as required are resolvable:

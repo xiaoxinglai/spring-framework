@@ -54,6 +54,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 		Assert.hasText(alias, "'alias' must not be empty");
 		synchronized (this.aliasMap) {
 			// 如果beanName与别名相同
+			// 1.如果别名和beanName相同，则不算别名，从aliasMap缓存中移除
 			if (alias.equals(name)) {
 				//移除别名
 				this.aliasMap.remove(alias);
@@ -87,6 +88,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 				//内部的检查逻辑是检查 给定的名称是否注册了给定的别名
 				checkForAliasCircle(name, alias);
 				//设置别名 key为别名 name是beanName
+				// 5.将别名和beanName的映射放到aliasMap缓存中
 				this.aliasMap.put(alias, name);
 				if (logger.isTraceEnabled()) {
 					logger.trace("Alias definition '" + alias + "' registered for name '" + name + "'");
